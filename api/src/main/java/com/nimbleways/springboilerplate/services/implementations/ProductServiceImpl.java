@@ -4,10 +4,11 @@ import com.nimbleways.springboilerplate.entities.Product;
 import com.nimbleways.springboilerplate.repositories.ProductRepository;
 import com.nimbleways.springboilerplate.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 
-
+@Service
 public class ProductServiceImpl implements ProductService {
 
     @Autowired
@@ -25,6 +26,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void notifyDelay(int leadTime, Product p) {
         ns.sendDelayNotification(leadTime, p.getName());
+    }
+
+    @Override
+    public void saveProduct(Product p) {
+        pr.save(p);
     }
 
     /**
@@ -45,13 +51,15 @@ public class ProductServiceImpl implements ProductService {
         if (now.plusDays(p.getLeadTime()).isAfter(p.getSeasonEndDate())) {
             ns.sendOutOfStockNotification(p.getName());
             p.setAvailable(0);
-            pr.save(p);
+            saveProduct(p);
         } else if (p.getSeasonStartDate().isAfter(now)) {
             ns.sendOutOfStockNotification(p.getName());
         } else {
             notifyDelay(p.getLeadTime(), p);
         }
     }
+
+
 
     /**
      * Decrements available stock by 1 if the product is in stock and not expired; otherwise sends an
@@ -63,11 +71,11 @@ public class ProductServiceImpl implements ProductService {
     public void processPurchaseOrNotifyExpiry(Product p) {
         if (p.getAvailable() > 0 && p.getExpiryDate().isAfter(LocalDate.now())) {
             p.setAvailable(p.getAvailable() - 1);
-            pr.save(p);
+            saveProduct(p);
         } else {
             ns.sendExpirationNotification(p.getName(), p.getExpiryDate());
             p.setAvailable(0);
-            pr.save(p);
+            saveProduct(p);
         }
     }
 }
